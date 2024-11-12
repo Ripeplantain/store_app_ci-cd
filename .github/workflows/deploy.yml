@@ -1,0 +1,54 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terragrunt:
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Setup S3 for Backend
+      run: |
+        chmod +x ./s3.sh
+        ./s3.sh
+
+    - name: Setup dynamodb for locking
+      run: |
+        chmod +x ./dynamodb.sh
+        ./dynamodb.sh
+
+    - name: Setup Terraform
+      uses:  hashicorp/setup-terraform@v3.1.2
+
+    - name: Install Terragrunt
+      run: |
+          wget https://github.com/gruntwork-io/terragrunt/releases/download/v0.68.10/terragrunt_linux_amd64
+          mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
+          chmod +x /usr/local/bin/terragrunt
+
+    - name: Initialize Terragrunt
+      working-directory: './environment/dev/${{ env.AWS_DEFAULT_REGION}}/network'
+      run: terragrunt init
+
+    - name: Plan Terragrunt
+      working-directory: './environment/dev/${{ env.AWS_DEFAULT_REGION}}/network'
+      run: terragrunt plan
+
+    - name: Apply Terragrunt
+      if: github.ref == 'refs/heads/main'
+      working-directory: './environment/dev/${{ env.AWS_DEFAULT_REGION}}/network'
+      run: terragrunt apply -auto-approve
