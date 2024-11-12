@@ -16,6 +16,8 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_DEFAULT_REGION: us-east-1
+      S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
+      DYNAMODB_TABLE: ${{ secrets.DYNAMODB_TABLE_NAME }}
 
     steps:
     - name: Checkout code
@@ -24,12 +26,12 @@ jobs:
     - name: Setup S3 for Backend
       run: |
         chmod +x ./s3.sh
-        ./s3.sh
+        ./s3.sh ${{ env.S3_BUCKET }}
 
     - name: Setup dynamodb for locking
       run: |
         chmod +x ./dynamodb.sh
-        ./dynamodb.sh
+        ./dynamodb.sh ${{ env.DYNAMODB_TABLE }}
 
     - name: Setup Terraform
       uses:  hashicorp/setup-terraform@v3.1.2
